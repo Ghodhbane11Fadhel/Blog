@@ -1,11 +1,14 @@
 pipeline {
         agent any
+        environment{
+                scannerHome = tool 'SonarScanner';
+        }
         stages {
           stage("build & SonarQube analysis") {
            
             steps {
               withSonarQubeEnv('My SonarQube Server') {
-                sh 'mvn clean package sonar:sonar'
+                sh "${scannerHome}/bin/sonar-scanner"
               }
             }
           }
