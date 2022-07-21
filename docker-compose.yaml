@@ -1,21 +1,55 @@
 version: '3'
 
-services:
-###> doctrine/doctrine-bundle ###
-  database:
-    image: postgres:${POSTGRES_VERSION:-13}-alpine
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-app}
-      # You should definitely change the password in production
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ChangeMe}
-      POSTGRES_USER: ${POSTGRES_USER:-symfony}
+services: # adds 2 services: mysql and phpmyadmin to connect with
+  db:
+    image: mysql # use latest version of mysql
+    container_name: db # add a name for the container
+    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+    environment: # add default values, see docs for more info.
+      MYSQL_USER: user 
+      MYSQL_ROOT_PASSWORD: mypassword
+      MYSQL_PASSWORD: mypassword 
+      MYSQL_DATABASE: blog # create this database on startup
+      MYSQL_ROOT_HOST: '%'
+    ports:
+      - '3306:3306'
+    networks:
+      - backend
     volumes:
-      - db-data:/var/lib/postgresql/data:rw
-      # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
-      # - ./docker/db/data:/var/lib/postgresql/data:rw
-###< doctrine/doctrine-bundle ###
-
+      - my-datavolume:/var/lib/mysql 
+  
+  phpmyadmin:
+    container_name: phpmyadmin
+    image: phpmyadmin
+    ports:
+     - "8081:80"
+    environment:
+      MYSQL_ROOT_PASSWORD: mypassword #(Required) set the password for the root superuser account.
+      PMA_HOST: db   # define the address/hostname of the mysql server eg mysql container name.
+      PMA_USER: root # this is the root user to login on startup
+      PMA_PASSWORD: mypassword # use the root password to login on startup.
+    depends_on:
+      - db
+    networks:
+      - backend
+      
+  app:
+    #build: 
+     # context: ./
+      #dockerfile : ./Dockerfile
+    image: mohamedfadhel404/blogsymfony
+    ports:
+      - 8000:8000
+    entrypoint: [ "bash", "-c", "sleep 10 && php bin/console make:migration && php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration && php bin/console server:run 0.0.0.0:8000 "] 
+    depends_on:
+      - db
+    networks:
+      - backend
+    environment:
+      DATABASE_URL: mysql://root:mypassword@db:3306/blog?serverVersion=5.7
+  
+networks:
+  backend : 
 volumes:
-###> doctrine/doctrine-bundle ###
-  db-data:
-###< doctrine/doctrine-bundle ###
+  my-datavolume : 
