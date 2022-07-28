@@ -26,8 +26,8 @@
 # EXPOSE 8000 
 # CMD php bin/console server:start
 
-
-FROM php:7.4-fpm
+FROM php:7.4-apache
+#FROM php:7.4-fpm
 
 
 
@@ -69,12 +69,20 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+WORKDIR /var/www/html
 
-COPY . /app
+COPY . /var/www/html
+COPY 000-default.conf /etc/apache2/sites-available/000-default.conf
 
-RUN composer require symfony/web-server-bundle ^4.4
-RUN composer install
+#RUN composer require symfony/web-server-bundle ^4.4
+RUN composer install 
+#RUN HTTPDUSER=$(ps axo user,comm | grep -E '[a]pache|[h]ttpd|[_]www|[w]ww-data|[n]ginx' | grep -v root | head -1 | cut -d\  -f1) 
+#RUN setfacl -dR -m u:"$HTTPDUSER":rwX -m u:$(whoami):rwX \var 
+#RUN setfacl -R -m u:"$HTTPDUSER":rwX -m u:$(whoami):rwX \var
+RUN chown -R www-data:www-data /var/www/html/var/cache && chown -R www-data:www-data /var/www/html/var/log
+
+
+
 #RUN php bin/console make:migration 
 #RUN php bin/console doctrine:migrations:migrate -i-no-nteraction --allow-no-migration 
   
@@ -82,5 +90,6 @@ RUN composer install
 #
 #ENTRYPOINT [ "sh" , "-c" ," php bin/console server:run 0.0.0.0:8000 " ]
 
-EXPOSE 8000
+EXPOSE 80
+
     
